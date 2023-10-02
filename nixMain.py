@@ -11,7 +11,7 @@ import threading
 
 
 
-con = c.connect(host='localhost',user='root',passwd='galphoe3000',database='nix')
+con = c.connect(host='localhost',user='root',passwd='<Password>',database='nix')
 cursor = con.cursor()
 
 mainUi_status = False
@@ -99,7 +99,7 @@ def get_otp(cpno):
   global genotp
   genotp = rand.randrange(111111,999999)
   try:
-    account_sid = '<Account_ID>'
+    account_sid = '<Account ID>'
     auth_token = '<Auth Token>'
     client = Client(account_sid, auth_token)
 
