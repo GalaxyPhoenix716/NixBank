@@ -39,12 +39,14 @@ def stayLoggedIn():
         uuid = li[5]
 
 
-        cursor.execute(f"SELECT * FROM LOGIN_STATUS WHERE UUID = '{uuid}';")
+        cursor.execute(f"SELECT STATUS FROM LOGIN_STATUS WHERE UUID = '{uuid}';")
         uuid_check = cursor.fetchone()
         
         if uuid_check == None :
-            cursor.execute(f"INSERT INTO LOGIN_STATUS VALUES('{uuid}',NULL);")
+            cursor.execute(f"INSERT INTO LOGIN_STATUS VALUES('{uuid}',NULL,NULL);")
             con.commit()
+        else: 
+            pass
         
         cursor.execute(f"SELECT STATUS FROM LOGIN_STATUS WHERE UUID = '{uuid}';")
         status = cursor.fetchone()
@@ -52,6 +54,9 @@ def stayLoggedIn():
         if status[0] == None :
             login_win()
         elif status[0] == "True" :
+            cursor.execute(f"SELECT PHNO FROM LOGIN_STATUS WHERE UUID = '{uuid}';")
+            al_phno = cursor.fetchone()
+            currentuser.append(int(al_phno[0]))
             mainUI()
         
     except Exception as e:
@@ -94,8 +99,8 @@ def get_otp(cpno):
   global genotp
   genotp = rand.randrange(111111,999999)
   try:
-    account_sid = 'AC963935e88bb5f580f7b8f9b99f7c9209'
-    auth_token = '3764ad2f4962d46bb7ad8c2115a42dc1'
+    account_sid = '<Account ID>'
+    auth_token = '<Auth Token>'
     client = Client(account_sid, auth_token)
 
     
@@ -145,6 +150,9 @@ def otpverification():
 
         cursor.execute(f"UPDATE LOGIN_STATUS SET STATUS = 'True' WHERE UUID = '{uuid}';")
         con.commit()
+        cursor.execute(f"UPDATE LOGIN_STATUS SET PHNO = {phonenumber} WHERE UUID = '{uuid}';")
+        con.commit()
+
 
         currentuser.append(phonenumber)
 
@@ -463,15 +471,15 @@ def otp_win():
 
       
 
-      nixlogo_otp = ImageTk.PhotoImage(Image.open('NixIcon.png'))
+      nixlogo_otp = ImageTk.PhotoImage(Image.open('LoginWindow/NixIcon.png'))
       l2 = Label(otpframe,image=nixlogo_otp,border=0,bg="#121212" ,relief=SUNKEN)
       l2.place(x=360,y=8)
       
-      nixlogo2_otp = ImageTk.PhotoImage(Image.open('Nix Logo 2.png'))
+      nixlogo2_otp = ImageTk.PhotoImage(Image.open('LoginWindow/Nix Logo 2.png'))
       l3 = Label(otpframe,image=nixlogo2_otp,border=0,bg="#121212" ,relief=SUNKEN)
       l3.place(x=25,y=8)
 
-      l1 =  ctk.CTkLabel(otpframe,text='An OTP was sent to {ph}'.format(ph='7024239983')
+      l1 =  ctk.CTkLabel(otpframe,text='An OTP was sent to {ph}'.format(ph=phonenumber)
                         ,text_color="#494949"
                         ,bg_color="#121212"
                         ,fg_color="#121212"
@@ -542,7 +550,7 @@ def otp_win():
       otpwin.mainloop()
     
     except Exception as why:
-      #  print(why)
+       #print(why)
        cursor.execute(f"UPDATE LOGIN_STATUS SET STATUS = 'True' WHERE UUID = '{uuid}';")
        con.commit()
        mainUI()
@@ -729,7 +737,8 @@ def mainUI():
     def payment_transaction(rphno,ramt,stype,rbalance):
         time.sleep(3)
         try :
-            t_date = date.today()
+            t_datetime = datetime.now()
+            t_date = datetime.strptime(t_datetime.strftime("%d/%m/%Y %H:%M:%S"),"%d/%m/%Y %H:%M:%S")
             
 
             cursor.execute(f'SELECT ACCOUNT_DETAILS.CARD_NO,ACCOUNT_DETAILS.ACCOUNT_NO,ACCOUNT_DETAILS.BALANCE FROM USER_DETAILS,ACCOUNT_DETAILS WHERE USER_DETAILS.ACCOUNT_NO = ACCOUNT_DETAILS.ACCOUNT_NO AND USER_DETAILS.PHONE_NO = {currentuser[0]};')
@@ -743,7 +752,7 @@ def mainUI():
             rname = rdetails[0]
             raccno = rdetails[1]
             
-            cursor.execute(f"INSERT INTO TRANSACTIONS VALUES({saccno},{scardno},'{rname}',{raccno},'{stype}','{t_date}',{ramt});")
+            cursor.execute(f"INSERT INTO TRANSACTIONS VALUES({saccno},{scardno},'{rname}',{raccno},'{stype}','{t_date}',{ramt},'{currentuser[2]}');")
             con.commit()
             
 
@@ -760,28 +769,35 @@ def mainUI():
         except Exception as error :
             print(error)
 
-    def create_history(item): 
-        history_overframe = ctk.CTkFrame(historydetailframe,fg_color='#161616')
+    def create_history(item,p): 
         
-        img = ctk.CTkImage(Image.open('icons/profilepic.png'),size=(30,30))
 
-        if item[0] == currentuser[1] :
-            ctk.CTkButton(history_overframe,width=380,height=90,image=img,
-                                    fg_color='#161616',bg_color='#161616',
-                                    text=f"                       {item[2]}                                                                                                                                                         {item[5]}                                                                                           -₹ {item[6]}",
-                                    text_color='#2e2e2e',font=("Barlow SemiBold",20),
-                                    border_width=3,border_color='#2e2e2e',
-                                    hover=False,corner_radius=10,compound=LEFT,anchor='w').pack(fill='x')
-        else:
-            ctk.CTkButton(history_overframe,width=380,height=90,image=img,
-                                    fg_color='#161616',bg_color='#161616',
-                                    text=f"                       {item[2]}                                                                                                                                                         {item[5]}                                                                                           -₹ {item[6]}",
-                                    text_color='#2e2e2e',font=("Barlow SemiBold",20),
-                                    border_width=3,border_color='#2e2e2e',
-                                    hover=False,corner_radius=10,compound=LEFT,anchor='w').pack(fill='x')
-        return history_overframe
+        if p == 'hp':
+            history_overframe = ctk.CTkFrame(historydetailframe,fg_color='#161616')
+        
+            img = ctk.CTkImage(Image.open('icons/profilepic.png'),size=(30,30))
+            if item[0] == currentuser[1] :
+                ctk.CTkButton(history_overframe,height=90,image=img,
+                                        fg_color='#161616',bg_color='#161616',
+                                        text=f"                       To {item[2]}                                                                                                                                          {item[5]}                                                                                           -₹ {item[6]}",
+                                        text_color='#2e2e2e',font=("Barlow SemiBold",20),
+                                        border_width=3,border_color='#2e2e2e',
+                                        hover=False,corner_radius=10,compound=LEFT,anchor='w').pack(fill='x')
+            else:
+                ctk.CTkButton(history_overframe,height=90,image=img,
+                                        fg_color='#161616',bg_color='#161616',
+                                        text=f"                        From {item[7]}                                                                                                                                  {item[5]}                                                                                           +₹ {item[6]}",
+                                        text_color='#2e2e2e',font=("Barlow SemiBold",20),
+                                        border_width=3,border_color='#2e2e2e',
+                                        hover=False,corner_radius=10,compound=LEFT,anchor='w').pack(fill='x')
+            return history_overframe
+        
+        elif p == 'rs':
+            pass
+
+        elif p == 'rh':
+            pass
             
-
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~MAIN UI FUNCTIONS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -887,7 +903,7 @@ def mainUI():
 
         global frames_delay
 
-        gif_file = Image.open('pmt_done1.gif')
+        gif_file = Image.open('MainUI/pmt_done1.gif')
 
         for r in range(0,gif_file.n_frames):
 
@@ -957,9 +973,10 @@ def mainUI():
     main.configure(fg_color='#161616')
     main.resizable(False,False)
 
-    cursor.execute(f"SELECT ACCOUNT_NO FROM USER_DETAILS WHERE PHONE_NO = {currentuser[0]};")
+    cursor.execute(f"SELECT ACCOUNT_NO,USERNAME FROM USER_DETAILS WHERE PHONE_NO = {currentuser[0]};")
     currentuser_accno = cursor.fetchone()
     currentuser.append(currentuser_accno[0])
+    currentuser.append(currentuser_accno[1])
 
     mainframe=ctk.CTkFrame(main,fg_color='#161616')
     mainframe.place(x=0,y=0,relwidth=1,height=860)
@@ -1006,10 +1023,10 @@ def mainUI():
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~WALLET~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         global ecard
-        ecard = Image.open('NixCard.png')
+        ecard = Image.open('Cards/Rebranded Nix Card.png')
         ecard = ecard.resize((571,331))
-        ecard.save('NixCard.png')
-        ecard = PhotoImage(file='NixCard.png')
+        ecard.save('Cards/Rebranded Nix Card.png')
+        ecard = PhotoImage(file='Cards/Rebranded Nix Card.png')
         c = ctk.CTkCanvas(home_frame,width=570,height=329,bg='#161616',bd=0,highlightthickness=0,relief='ridge')
         c.place(x=33,y=96)
 
@@ -1017,10 +1034,14 @@ def mainUI():
 
         ecard_details()
 
-        card_show_balance = c.create_text(193,140,text=f'₹ {balance}',font=('Barlow Medium',60),fill='white')
-        card_show_currency = c.create_text(120,43,text='R U P E E',font=('Barlow Bold',16),fill='white',anchor='e')
-        card_show_cardno = c.create_text(230,250,text=censored_cardno,font=('Barlow SemiBold',20),fill='white',anchor='e')
-        card_show_expdate = c.create_text(445,250,text=expdate,font=('Barlow SemiBold',20),fill='white',anchor='e')
+        currencies = {'india':'R  U  P  E  E','usa':'U  S  D','aus':'A  U  D','canada':'C  A  D','china':'C  N  Y','czech':'C  Z  K','euro':'E  U  R','japan':'J  P  Y','singapore':'S  G  D','france':'C  H  F','vietnam':'V  N  D','uae':'A  E  D'}
+        sel_currency = ctk.StringVar()
+        sel_currency.set(currencies['india'])
+
+        c.create_text(193,140,text=f'₹ {balance}',font=('Barlow Medium',60),fill='#6C7076')
+        c.create_text(135,43,text=sel_currency.get() ,font=('Barlow Bold',16),fill='#6C7076',anchor='e')
+        c.create_text(230,250,text=censored_cardno,font=('Barlow SemiBold',20),fill='#6C7076',anchor='e')
+        c.create_text(445,250,text=expdate,font=('Barlow SemiBold',20),fill='#6C7076',anchor='e')
 
         card_slide  = ctk.CTkLabel(home_frame,text='●',text_color='#0096D9')
         card_slide.place(x=255,y=345)
@@ -1033,11 +1054,12 @@ def mainUI():
         trnsct_label.place(x=221,y=377)
         trnsct_line=ctk.CTkLabel(home_frame,text='',bg_color='#2e2e2e')
         trnsct_line.place(x=22,y=410,width=591,height=2)
+        
 
         s = ctk.CTkCanvas(home_frame,width=590,height=79,bg='#161616',bd=0,highlightthickness=0,relief='ridge',scrollregion = (0,0,3000,0))
         s.place(x=28,y=518)
 
-        s.create_line(0,0,3000,10,width=15)
+        
 
         s.bind('<MouseWheel>',lambda event: s.xview_scroll(-int(event.delta / 10),"units"))
 
@@ -1052,9 +1074,38 @@ def mainUI():
         recent_line = ctk.CTkLabel(home_frame,text='',bg_color='#2e2e2e')
         recent_line.place(x=22,y=530,width=591,height=2)
 
-        recentops = ctk.CTkCanvas(home_frame,bg = '#161616',scrollregion = (0,0,1000,3000),width=589,height=160,bd=0,highlightthickness=0,relief='ridge')
-        recentops.create_line(0,0,1000,3000,fill='red',width=10)
+        cursor.execute(f"SELECT TO_NAME,FROM_NAME,AMOUNT FROM TRANSACTIONS WHERE FROM_NAME = '{currentuser[2]}' OR TO_NAME = '{currentuser[2]}' ORDER BY DATE DESC")
+        recent_opsd = cursor.fetchmany(10)
+        item_number = len(recent_opsd)
+        list_height = item_number * 150
+
+        recentops = ctk.CTkCanvas(home_frame,bg = '#161616',scrollregion = (0,0,1000,list_height),width=589,height=160,bd=0,highlightthickness=0,relief='ridge')
         recentops.place(x=30,y=693)
+
+        global recentops_frame
+        recentops_frame = ctk.CTkFrame(recentops,fg_color='red',height=list_height,width=1000)
+        # recentops_frame.place(x=0,y=0,relwidth=1,relheight=1)
+        recentops.create_window(34,656,window=recentops_frame)
+
+        if recent_opsd != ['1']:
+            pass
+        else:
+            ro_status = ctk.CTkLabel(recentops_frame,text="All your transactions\nwill be shown here",text_color="#2e2e2e",font=("Barlow SemiBold",13))
+            ro_status.place(x=50,y=650)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         recentops.bind('<MouseWheel>',lambda event: recentops.yview_scroll(-int(event.delta / 10),"units"))
         
@@ -1083,7 +1134,7 @@ def mainUI():
         
         mg_line=ctk.CTkLabel(home_frame,text='',bg_color='#2e2e2e')
         mg_line.place(x=530,y=545,width=593,height=2)
-
+    
     def transferpage():
         transfer_frame = ctk.CTkFrame(mainframe,fg_color='#161616')
         transfer_frame.place(x=0,y=0,relwidth=1,relheight=1)
@@ -1250,7 +1301,7 @@ def mainUI():
         payment_type = []
 
         global mobilebtn
-        mobileicon=ctk.CTkImage(Image.open('category icons/smartphone.png'),size=(43,43))
+        mobileicon=ctk.CTkImage(Image.open('category_icons/smartphone.png'),size=(43,43))
         mobilebtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Mobile\nBills',font=('Barlow Medium',13),text_color='#b5b5b5',
@@ -1260,7 +1311,7 @@ def mainUI():
         mobilebtn.place(x=1056+15,y = 85)
 
         global internetbtn
-        interneticon=ctk.CTkImage(Image.open('category icons/internet.png'),size=(43,43))
+        interneticon=ctk.CTkImage(Image.open('category_icons/internet.png'),size=(43,43))
         internetbtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Internet &\nSubscriptions',font=('Barlow Medium',12),text_color='#b5b5b5',
@@ -1270,7 +1321,7 @@ def mainUI():
         internetbtn.place(x=1056+15,y = 235)
         
         global transportbtn
-        transporticon=ctk.CTkImage(Image.open('category icons/transport.png'),size=(43,43))
+        transporticon=ctk.CTkImage(Image.open('category_icons/transport.png'),size=(43,43))
         transportbtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Transport',font=('Barlow Medium',13),text_color='#b5b5b5',
@@ -1280,7 +1331,7 @@ def mainUI():
         transportbtn.place(x=1056+15,y = 385)
         
         global ewalletbtn
-        ewalleticon=ctk.CTkImage(Image.open('category icons/ewallet.png'),size=(43,43))
+        ewalleticon=ctk.CTkImage(Image.open('category_icons/ewallet.png'),size=(43,43))
         ewalletbtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='E-wallets',font=('Barlow Medium',13),text_color='#b5b5b5',
@@ -1290,7 +1341,7 @@ def mainUI():
         ewalletbtn.place(x=1056+15,y = 535)
         
         global govtbtn
-        govticon=ctk.CTkImage(Image.open('category icons/govt.png'),size=(43,43))
+        govticon=ctk.CTkImage(Image.open('category_icons/govt.png'),size=(43,43))
         govtbtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Govt\nBills',font=('Barlow Medium',13),text_color='#b5b5b5',
@@ -1300,7 +1351,7 @@ def mainUI():
         govtbtn.place(x=1206+15,y = 85)
         
         global ottbtn
-        otticon=ctk.CTkImage(Image.open('category icons/ott.png'),size=(43,43))
+        otticon=ctk.CTkImage(Image.open('category_icons/ott.png'),size=(43,43))
         ottbtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='OTT\nSubscriptions',font=('Barlow Medium',12),text_color='#b5b5b5',
@@ -1310,7 +1361,7 @@ def mainUI():
         ottbtn.place(x=1206+15,y = 235)
         
         global gamesbtn
-        gamesicon=ctk.CTkImage(Image.open('category icons/games.png'),size=(43,43))
+        gamesicon=ctk.CTkImage(Image.open('category_icons/games.png'),size=(43,43))
         gamesbtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Games',font=('Barlow Medium',13),text_color='#b5b5b5',
@@ -1320,7 +1371,7 @@ def mainUI():
         gamesbtn.place(x=1206+15,y = 385)
         
         global travelbtn
-        travelicon=ctk.CTkImage(Image.open('category icons/travel.png'),size=(43,43))
+        travelicon=ctk.CTkImage(Image.open('category_icons/travel.png'),size=(43,43))
         travelbtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Travelling',font=('Barlow Medium',13),text_color='#b5b5b5',
@@ -1330,7 +1381,7 @@ def mainUI():
         travelbtn.place(x=1206+15,y = 535)
         
         global healthcarebtn
-        healthcareicon=ctk.CTkImage(Image.open('category icons/healthcare.png'),size=(43,43))
+        healthcareicon=ctk.CTkImage(Image.open('category_icons/healthcare.png'),size=(43,43))
         healthcarebtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Healthcare &\nMedicines',font=('Barlow Medium',12),text_color='#b5b5b5',
@@ -1340,7 +1391,7 @@ def mainUI():
         healthcarebtn.place(x=1356+15,y = 85)
         
         global grocerybtn
-        groceryicon=ctk.CTkImage(Image.open('category icons/grocery.png'),size=(43,43))
+        groceryicon=ctk.CTkImage(Image.open('category_icons/grocery.png'),size=(43,43))
         grocerybtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Grocery',font=('Barlow Medium',12),text_color='#b5b5b5',
@@ -1350,7 +1401,7 @@ def mainUI():
         grocerybtn.place(x=1356+15,y = 235)
         
         global educationbtn
-        educationicon=ctk.CTkImage(Image.open('category icons/education.png'),size=(43,43))
+        educationicon=ctk.CTkImage(Image.open('category_icons/education.png'),size=(43,43))
         educationbtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Education',font=('Barlow Medium',13),text_color='#b5b5b5',
@@ -1360,7 +1411,7 @@ def mainUI():
         educationbtn.place(x=1356+15,y = 385)
         
         global shoppingbtn
-        shoppingicon=ctk.CTkImage(Image.open('category icons/shopping.png'),size=(43,43))
+        shoppingicon=ctk.CTkImage(Image.open('category_icons/shopping.png'),size=(43,43))
         shoppingbtn = ctk.CTkButton(transfer_frame,height=130,width=120,
                                   fg_color='#161616',border_width=2,border_color='#2e2e2e',
                                   text='Shopping &\nLuxe',font=('Barlow Medium',13),text_color='#b5b5b5',
@@ -1368,7 +1419,7 @@ def mainUI():
                                   image=shoppingicon,compound=TOP,
                                   command = lambda : indicate(shoppingbtn,None,'c','shopping',None))
         shoppingbtn.place(x=1356+15,y = 535)
-        
+    
     def spendingpage():
         spending_frame = ctk.CTkFrame(mainframe,fg_color='#161616')
         spending_frame.place(x=0,y=0,relwidth=1,relheight=1)
@@ -1387,13 +1438,13 @@ def mainUI():
     def historypage():
         def updatesize(e):
             if list_height >= history_frame.winfo_height():
-                height = list_height
+                pass
             else:
-                height = history_frame.winfo_height()
+                historylist.unbind_all('<MouseWheel>')
 
             historylist.create_window((0,0),window=historydetailframe
                                       ,width=history_frame.winfo_width()
-                                      ,height=height,anchor='nw')
+                                      ,height=list_height,anchor='nw')
 
 
         cursor.execute(f"SELECT * FROM TRANSACTIONS WHERE FROM_ACCNO = {currentuser[1]} OR TO_ACCNO = {currentuser[1]} ;")
@@ -1417,11 +1468,7 @@ def mainUI():
             historydetailframe = ctk.CTkFrame(history_frame,fg_color='#161616',bg_color='#161616')
 
             for index,item in enumerate(historydetails):
-                create_history(item).pack(expand = True, fill='both',padx=10,pady=5)
-
-
-        
-
+                create_history(item,'hp').pack(expand = True, fill='both',padx=10,pady=5,side=BOTTOM)
 
             historylist.bind_all('<MouseWheel>',lambda event: historylist.yview_scroll(-int(event.delta / 40),"units"))
             history_frame.bind('<Configure>', updatesize)
@@ -1440,11 +1487,11 @@ def mainUI():
         trnsctn_cmplt_frame.place(x=0,y=0,relwidth=1,relheight=1)
 
 
-        nixlogo = ctk.CTkImage(Image.open('NixIcon.png'),size=(75,75))
+        nixlogo = ctk.CTkImage(Image.open('LoginWindow/NixIcon.png'),size=(75,75))
         l1 = ctk.CTkLabel(trnsctn_cmplt_frame,text="",image=nixlogo,bg_color="#161616")
         l1.pack(anchor='ne',padx=15,pady=15)
 
-        nixlogo2 = ctk.CTkImage(Image.open('Nix Logo 2.png'),size=(75, 53))
+        nixlogo2 = ctk.CTkImage(Image.open('LoginWindow/Nix Logo 2.png'),size=(75, 53))
         l2 = ctk.CTkLabel(trnsctn_cmplt_frame,text="",image=nixlogo2,bg_color="#161616")
         l2.place(x=15,y=30)
 
@@ -1545,7 +1592,7 @@ def mainUI():
 
     
     creditsicon=ctk.CTkImage(Image.open('icons/credits_uns.png'))
-    credits = ctk.CTkButton(main,text='Credits',image=creditsicon,compound='top',font=('Barlow Medium',10),width=65,height=65,bg_color='#252525',text_color='#b6b6b6',fg_color='#1e1e1e',border_width=0,corner_radius=12,hover_color='#1e1e1e',command=lambda : indicate(credits,creditspage,'n',None,'credits'))
+    credits = ctk.CTkButton(main,text='Nix Area',image=creditsicon,compound='top',font=('Barlow Medium',10),width=65,height=65,bg_color='#252525',text_color='#b6b6b6',fg_color='#1e1e1e',border_width=0,corner_radius=12,hover_color='#1e1e1e',command=lambda : indicate(credits,creditspage,'n',None,'credits'))
     credits.place(x=771+1,y=699)
 
     
@@ -1577,8 +1624,6 @@ def mainUI():
     
     homepage()
     main.mainloop()
-
-
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Main~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if __name__ == '__main__' :
