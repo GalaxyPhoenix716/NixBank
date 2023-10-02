@@ -99,7 +99,7 @@ def get_otp(cpno):
   global genotp
   genotp = rand.randrange(111111,999999)
   try:
-    account_sid = '<Account ID>'
+    account_sid = '<Account_ID>'
     auth_token = '<Auth Token>'
     client = Client(account_sid, auth_token)
 
