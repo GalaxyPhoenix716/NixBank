@@ -626,7 +626,7 @@ def mainUI():
         
         headings = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-        with open('E:/Nix-Banking/User Data/usermontlyexpenditure.csv', 'w', newline='') as fp:
+        with open('E:/Nix-Banking/User_Data/usermontlyexpenditure.csv', 'w', newline='') as fp:
             writer = csv.writer(fp)
             writer.writerow(headings)
             
@@ -638,7 +638,7 @@ def mainUI():
         
         headings = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-        with open('E:/Nix-Banking/User Data/usermontlyincome.csv', 'w', newline='') as fp:
+        with open('E:/Nix-Banking/User_Data/usermontlyincome.csv', 'w', newline='') as fp:
             writer = csv.writer(fp)
             writer.writerow(headings)
             
@@ -647,7 +647,7 @@ def mainUI():
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~GRAPHS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def monthly_expenditure_graph():
-            df = pd.read_csv("E:/Nix-Banking/User Data/usermontlyexpenditure.csv")
+            df = pd.read_csv("E:/Nix-Banking/User_Data/usermontlyexpenditure.csv")
             mexp = df.T
             ymax = max(mexp[0])
             xmax = mexp[0].idxmax()
@@ -671,7 +671,7 @@ def mainUI():
             mexp_canvas.get_tk_widget().place(x=0,y=0)
 
     def monthly_income_graph():
-            df = pd.read_csv("E:/Nix-Banking/User Data/usermontlyincome.csv")
+            df = pd.read_csv("E:/Nix-Banking/User_Data/usermontlyincome.csv")
             minc = df.T
             ymax = max(minc[0])
             xmax = minc[0].idxmax()
