@@ -5,14 +5,29 @@ from datetime import *
 import random as rand
 from PIL import ImageTk, Image
 import time
+import csv
 import subprocess
 from twilio.rest import Client
 import threading
+import notkinter as ntk
+from CTkMessagebox import CTkMessagebox 
+from CTkListbox import *
+from CTkScrollableDropdown import *
+from tkcalendar import Calendar
+import threading
+import numpy as np
+import pandas as pd
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
-
-con = c.connect(host='localhost',user='root',passwd='<Password>',database='nix')
+con = c.connect(host='localhost',user='root',passwd='galphoe3000',database='nix',buffered=True)
 cursor = con.cursor()
+con2 = c.connect(host='localhost',user='root',passwd='galphoe3000',database='nix_data',buffered=True)
+cursor2 = con2.cursor()
+con3 = c.connect(host='localhost',user='root',passwd='galphoe3000',database='nix_analysis_data',buffered=True)
+cursor3 = con3.cursor()
 
 mainUi_status = False
 
@@ -25,9 +40,13 @@ frames_delay = 0
                     # for payment animation gif
 stop = False
 
-frame_count = -1 
+frame_count = -1
 
 transaction_details = []
+
+nixareavars={}
+
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Backend Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def stayLoggedIn():
     try :
@@ -99,8 +118,8 @@ def get_otp(cpno):
   global genotp
   genotp = rand.randrange(111111,999999)
   try:
-    account_sid = '<Account ID>'
-    auth_token = '<Auth Token>'
+    account_sid = 'AC963935e88bb5f580f7b8f9b99f7c9209'
+    auth_token = '6b0373d655b821fe4d7607449c447021'
     client = Client(account_sid, auth_token)
 
     
@@ -600,6 +619,83 @@ def show_hide_pass():
       login.update()
 
 def mainUI():
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ANALYSIS TO CSV~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def montlyexp_tocsv():
+        cursor2.execute(f'SELECT jan,feb,mar,apr,may,jun,jul,aug,sep,oct,nov,decm FROM NIX_ANALYSIS_DATA.{currentuser[1]}_EXPENDITURE WHERE YEAR = {int(datetime.today().year)};')
+        
+        headings = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+        with open('E:/Nix-Banking/User Data/usermontlyexpenditure.csv', 'w', newline='') as fp:
+            writer = csv.writer(fp)
+            writer.writerow(headings)
+            
+            for (b,c,d,e,f,g,h,i,j,k,l,m) in cursor2:
+                writer.writerow([b,c,d,e,f,g,h,i,j,k,l,m])
+    
+    def monthlyinc_tocsv():
+        cursor2.execute(f'SELECT jan,feb,mar,apr,may,jun,jul,aug,sep,oct,nov,decm FROM NIX_ANALYSIS_DATA.{currentuser[1]}_INCOME WHERE YEAR = {int(datetime.today().year)};')
+        
+        headings = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+        with open('E:/Nix-Banking/User Data/usermontlyincome.csv', 'w', newline='') as fp:
+            writer = csv.writer(fp)
+            writer.writerow(headings)
+            
+            for (b,c,d,e,f,g,h,i,j,k,l,m) in cursor2:
+                writer.writerow([b,c,d,e,f,g,h,i,j,k,l,m])
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~GRAPHS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def monthly_expenditure_graph():
+            df = pd.read_csv("E:/Nix-Banking/User Data/usermontlyexpenditure.csv")
+            mexp = df.T
+            ymax = max(mexp[0])
+            xmax = mexp[0].idxmax()
+            
+            fig = Figure(figsize = (6.8, 2.8),dpi = 100,facecolor="#161616") 
+            mexp_plot = fig.add_subplot(111,facecolor="#161616") 
+            mexp_plot.grid(axis='y',alpha=0.1)
+            mexp_plot.plot(mexp,color='#5e5e5e') 
+            mexp_plot.spines['bottom'].set_color('#3e3e3e')
+            mexp_plot.spines['top'].set_color('#161616')
+            mexp_plot.spines['right'].set_color('#161616')
+            mexp_plot.spines['left'].set_color('#161616')
+            mexp_plot.xaxis.label.set_color('#3e3e3e')
+            mexp_plot.tick_params(axis='x', colors='#3e3e3e')
+            mexp_plot.tick_params(axis='y', colors='#3e3e3e')
+
+            mexp_plot.annotate(f'₹{ymax}', xy=(xmax, ymax), xytext=(xmax, ymax+5),color="orange",arrowprops=dict(facecolor='orange'))
+            global mexp_canvas
+            mexp_canvas = FigureCanvasTkAgg(fig,master = ie_graph_frame)   
+            mexp_canvas.draw() 
+            mexp_canvas.get_tk_widget().place(x=0,y=0)
+
+    def monthly_income_graph():
+            df = pd.read_csv("E:/Nix-Banking/User Data/usermontlyincome.csv")
+            minc = df.T
+            ymax = max(minc[0])
+            xmax = minc[0].idxmax()
+            
+            fig = Figure(figsize = (6.8, 2.8),dpi = 100,facecolor="#161616") 
+            minc_plot = fig.add_subplot(111,facecolor="#161616") 
+            minc_plot.grid(axis='y',alpha=0.1)
+            minc_plot.plot(minc,color='#5e5e5e') 
+            minc_plot.spines['bottom'].set_color('#3e3e3e')
+            minc_plot.spines['top'].set_color('#161616')
+            minc_plot.spines['right'].set_color('#161616')
+            minc_plot.spines['left'].set_color('#161616')
+            minc_plot.xaxis.label.set_color('#3e3e3e')
+            minc_plot.tick_params(axis='x', colors='#3e3e3e')
+            minc_plot.tick_params(axis='y', colors='#3e3e3e')
+
+            minc_plot.annotate(f'₹{ymax}', xy=(xmax, ymax), xytext=(xmax, ymax+5),color="orange",arrowprops=dict(facecolor='orange'),fontsize=8)
+            global minc_canvas
+            minc_canvas = FigureCanvasTkAgg(fig,master = ie_graph_frame)   
+            minc_canvas.draw() 
+            minc_canvas.get_tk_widget().place(x=0,y=0)
+        
+        
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~BACKEND~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def ecard_details():
     
@@ -668,7 +764,7 @@ def mainUI():
                         rec_amtStr.set('Enter valid amount')
                         
                         transfer_to_entry.configure(text_color = "white",border_color="#2e2e2e",font=("Barlow",13,'normal'))
-                        amount.configure(text_color = "#C21807",border_color="#C21807",textvariable=rec_amtStr,font=("Barlow",13,'normal'))
+                        amount.configure(text_color = "",border_color="#C21807",textvariable=rec_amtStr,font=("Barlow",13,'normal'))
 
 
                 except:
@@ -798,6 +894,100 @@ def mainUI():
         elif p == 'rh':
             pass
             
+    def checkifint(widget,widget2,ptf):
+        if widget.get()=="":
+            pass
+        else :
+            try:
+                value = widget.get()
+                value = int(value)
+                proceedtofunction(ptf)
+            except Exception as gerror:
+                print(gerror)
+                widget.delete(0,END)
+                widget.configure(border_color="#C21807",placeholder_text="Enter Valid Detail",placeholder_text_color="#C21807")
+                widget2.focus()
+            
+    def inputgoals(goal,goalamount,widget1,widget2):
+
+        cursor2.execute(f"INSERT INTO NIX_DATA.{currentuser[1]}_GOALS VALUES('{goal}',{goalamount},0,{currentuser[1]})")
+        con2.commit()
+
+        cursor.execute(f"UPDATE NIXAREA_DETAILS SET TGOALS=TGOALS+1 WHERE ACC_NO={currentuser[1]};")
+        con.commit()
+
+        widget1.delete(0,END)
+        widget2.delete(0,END)
+
+    def proceedtofunction(ptf):
+        if ptf == "ga":
+            inputgoals(goal_input.get(),goalamt_input.get(),goal_input,goalamt_input)
+            nixarea_frame.update()
+        elif ptf == "ge" :
+            editgoals()
+            nixarea_frame.update()
+
+        elif ptf == "ba":
+            add_bill()
+            nixarea_frame.update()
+
+    def editgoals():
+        if currgoalamt_input.get() != "" and goalbox.get() != "Select goal" and radio_var.get() != "0":
+            cursor.execute(f"SELECT BALANCE FROM NIX.ACCOUNT_DETAILS WHERE ACCOUNT_NO = {currentuser[1]};")
+            bal = cursor.fetchone()
+            cursor.execute(f"SELECT TSAVINGS FROM NIX.NIXAREA_DETAILS WHERE ACC_NO = {currentuser[1]};")
+            ts = cursor.fetchone()
+
+            addreq = int(currgoalamt_input.get())
+            payfrom = int(radio_var.get())
+
+            if payfrom ==1 and bal[0] < addreq :
+                errorstr.configure(text="Insufficient balance")
+            
+            elif payfrom ==2 and ts[0] < addreq :
+                errorstr.configure(text="Insufficient savings")
+            
+            elif addreq > 11000:
+                errorstr.configure(text="Can't add more than ₹5000")
+            
+            else:
+                query = f"UPDATE NIX_DATA.{currentuser[1]}_GOALS SET CURR_GOAL_AMT = CURR_GOAL_AMT+{addreq} WHERE GOALS = '{goalbox.get()}';"
+                cursor2.execute(query)
+                con2.commit()
+
+                currgoalamt_input.delete(0,END)
+                goalbox.set("Select goal")
+                radio_var.set(value=0)
+                radiobutton_1.deselect()
+                radiobutton_2.deselect()
+                currgoalamt_input.configure(border_color="#2e2e2e")
+                errorstr.configure(text="")
+                nixarea_frame.update()
+
+                if payfrom == 1:
+                    cursor.execute(f"UPDATE ACCOUNT_DETAILS SET BALANCE = BALANCE-{addreq} WHERE ACCOUNT_NO = {currentuser[1]};")
+                    con.commit()
+                    
+                
+                elif payfrom == 2:
+                    cursor.execute(f"UPDATE NIXAREA_DETAILS SET TSAVINGS = TSAVINGS-{addreq} WHERE ACCOUNT_NO = {currentuser[1]};")
+                    con.commit()
+        else:
+            pass
+
+    def add_bill():
+        cursor2.execute(f"INSERT INTO NIX_DATA.{currentuser[1]}_UCBILLS VALUES('{ubname_input.get()}',{ubamt_input.get()},'{ubdate_input.get()}',{currentuser[1]})")
+        con2.commit()
+        con.commit()
+
+        cursor.execute(f"UPDATE NIXAREA_DETAILS SET TBILLS=TBILLS+1 WHERE ACC_NO={currentuser[1]};")
+        con.commit()
+
+        ubname_input.delete(0,END)
+        ubamt_input.delete(0,END)
+        ubdate_input.delete(0,END)
+        nixarea_frame.update()
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~MAIN UI FUNCTIONS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -861,6 +1051,38 @@ def mainUI():
     def hover_back_out(e) :
         newimg = ctk.CTkImage(Image.open(f'icons/back.png'),size=(30,30))
         back.configure(image = newimg)
+
+    def hover_upc_a_in(e):
+        newimg = ctk.CTkImage(Image.open(f'icons/add.png'),size=(18,18))
+        upc_a_icon.configure(image = newimg)
+
+    def hover_upc_a_out(e) :
+        newimg = ctk.CTkImage(Image.open(f'icons/add_uns.png'),size=(18,18))
+        upc_a_icon.configure(image = newimg)
+
+    def hover_upc_e_in(e):
+        newimg = ctk.CTkImage(Image.open(f'icons/edit.png'),size=(16,16))
+        upc_e_icon.configure(image = newimg)
+
+    def hover_upc_e_out(e) :
+        newimg = ctk.CTkImage(Image.open(f'icons/edit_uns.png'),size=(16,16))
+        upc_e_icon.configure(image = newimg)
+
+    def hover_ga_in(e):
+        newimg = ctk.CTkImage(Image.open(f'icons/add.png'),size=(18,18))
+        ga_icon.configure(image = newimg)
+
+    def hover_ga_out(e) :
+        newimg = ctk.CTkImage(Image.open(f'icons/add_uns.png'),size=(18,18))
+        ga_icon.configure(image = newimg)
+
+    def hover_ge_in(e):
+        newimg = ctk.CTkImage(Image.open(f'icons/edit.png'),size=(16,16))
+        ge_icon.configure(image = newimg)
+
+    def hover_ge_out(e) :
+        newimg = ctk.CTkImage(Image.open(f'icons/edit_uns.png'),size=(16,16))
+        ge_icon.configure(image = newimg)
 
     def enter_recphone_entry(e):
         if rec_phnoStr.get() == 'Phone Number' or rec_phnoStr.get() == 'Enter valid phone no':
@@ -964,8 +1186,28 @@ def mainUI():
         receipt_amt = ctk.CTkLabel(trnsctn_cmplt_frame,text=f"₹ {ramt} was sent to {rphno}",text_color="#2e2e2e",font=("Barlow SemiBold",20))
         receipt_amt.place(x=630,y=360)
 
+    def exp_to_inc(e):
+        expenses_label.configure(text_color="#2e2e2e")
+        income_label.configure(text_color="#0096D9")
+        selection_line.place(x=767,y=315)
+        
+        mexp_canvas.get_tk_widget().destroy()
+        monthly_income_graph()
+
+    def inc_to_exp(e):
+        income_label.configure(text_color="#2e2e2e")
+        expenses_label.configure(text_color="#0096D9")
+        selection_line.place(x=530,y=315)
+        
+        minc_canvas.get_tk_widget().destroy()
+        monthly_expenditure_graph()
+
+
+
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~MAIN UI~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
+
     main = ctk.CTk()
     main.title("Nix")
     main.state("zoomed")
@@ -977,6 +1219,9 @@ def mainUI():
     currentuser_accno = cursor.fetchone()
     currentuser.append(currentuser_accno[0])
     currentuser.append(currentuser_accno[1])
+
+    montlyexp_tocsv()
+    monthlyinc_tocsv()
 
     mainframe=ctk.CTkFrame(main,fg_color='#161616')
     mainframe.place(x=0,y=0,relwidth=1,height=860)
@@ -1076,48 +1321,29 @@ def mainUI():
 
         cursor.execute(f"SELECT TO_NAME,FROM_NAME,AMOUNT FROM TRANSACTIONS WHERE FROM_NAME = '{currentuser[2]}' OR TO_NAME = '{currentuser[2]}' ORDER BY DATE DESC")
         recent_opsd = cursor.fetchmany(10)
-        item_number = len(recent_opsd)
-        list_height = item_number * 150
-
-        recentops = ctk.CTkCanvas(home_frame,bg = '#161616',scrollregion = (0,0,1000,list_height),width=589,height=160,bd=0,highlightthickness=0,relief='ridge')
-        recentops.place(x=30,y=693)
-
-        global recentops_frame
-        recentops_frame = ctk.CTkFrame(recentops,fg_color='red',height=list_height,width=1000)
-        # recentops_frame.place(x=0,y=0,relwidth=1,relheight=1)
-        recentops.create_window(34,656,window=recentops_frame)
-
-        if recent_opsd != ['1']:
-            pass
-        else:
-            ro_status = ctk.CTkLabel(recentops_frame,text="All your transactions\nwill be shown here",text_color="#2e2e2e",font=("Barlow SemiBold",13))
-            ro_status.place(x=50,y=650)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        recentops.bind('<MouseWheel>',lambda event: recentops.yview_scroll(-int(event.delta / 10),"units"))
+        
         
         recent_tag = ctk.CTkLabel(home_frame,text='   Today   ',height=20,fg_color='#2e2e2e',bg_color='#161616',font=('Barlow',10),text_color='#b6b6b6')
         recent_tag.place(x=22,y=532)
 
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~EXPENSES~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+        global ie_graph_frame
+        ie_graph_frame = ctk.CTkFrame(home_frame,fg_color='#161616',bg_color="#161616",width=520,height=224)
+        ie_graph_frame.place(x=515,y=297)
+       
+       
+        monthly_expenditure_graph()
+        
+        
+        #Labels
+        global expenses_label,income_label,selection_line
         expenses_label = ctk.CTkLabel(home_frame,text='Expenses',text_color='#0096D9',bg_color='#161616',font=('Barlow Medium',15))
+        income_label = ctk.CTkLabel(home_frame,text='Income',text_color='#2e2e2e',bg_color='#161616',font=('Barlow Medium',15))
+        expenses_label.bind("<Button-1>",inc_to_exp)
+        income_label.bind("<Button-1>",exp_to_inc)
+        
         expenses_label.place(x=617,y=285)
 
-        income_label = ctk.CTkLabel(home_frame,text='Income',text_color='#2e2e2e',bg_color='#161616',font=('Barlow Medium',15))
         income_label.place(x=864,y=285)
 
         expenses_line=ctk.CTkLabel(home_frame,text='',bg_color='#2e2e2e')
@@ -1126,16 +1352,52 @@ def mainUI():
         selection_line=ctk.CTkLabel(home_frame,text='',bg_color='#0096D9')
         selection_line.place(x=530,y=315,width=296,height=2)
 
+        
+
+
 
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~MY GOALS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        cursor2.execute(f"SELECT GOALS,GOAL_AMT,CURR_GOAL_AMT FROM NIX_DATA.{currentuser[1]}_GOALS;")
+        goals_data=cursor2.fetchmany(3)
 
         mg_label = ctk.CTkLabel(home_frame,text='My Goals',text_color='#2e2e2e',bg_color='#161616',font=('Barlow Medium',15))
         mg_label.place(x=533,y=515)
         
         mg_line=ctk.CTkLabel(home_frame,text='',bg_color='#2e2e2e')
         mg_line.place(x=530,y=545,width=593,height=2)
+
+        goals_pframe = ntk.CTkFrame(home_frame,width=485,height=100,fg_color='#161616',bg_color="#161616")
+        goals_pframe.place(x=525,y=560)
+        goals_mframe = ntk.CTkScrollableFrame(goals_pframe,width=460,height=100,fg_color='#161616')
+        goals_mframe.place(x=0,y=0)
+
+        goals_mframe.columnconfigure(1,weight=50)
+        goals_mframe.columnconfigure(2,weight=1)
+
+        # placing objects
+        gposindex= range(0,7,2)
+        for i,data in zip(gposindex,goals_data):
+            g = ctk.CTkButton(goals_mframe,text=f"{data[0]}",text_color="#2e2e2e",fg_color="#161616",bg_color="#161616",hover=False,font=('Barlow Medium',20),anchor='w')
+            g.grid(row=i,column=1,sticky='w')
+
+            pay=ctk.CTkLabel(goals_mframe,text="Pay",text_color="#2e2e2e",font=('Barlow Medium',18),bg_color="#161616")
+            pay.grid(row=i,column=2,sticky='e',padx=(0,5))
+
+            p=ctk.CTkLabel(goals_mframe,text=f"₹{data[2]}/₹{data[1]}",text_color="#2e2e2e",font=('Barlow Regular',15),bg_color="#161616")
+            p.grid(row=i+1,column=1,sticky='sw',padx=9,pady=(0,8))
+
+            pb = ctk.CTkProgressBar(goals_mframe,orientation='horizontal')
+            pb.grid(row=i+1,column=2,sticky='ew',pady=(0,8))
+            pbvalue = ((data[2]/data[1]))
+            pb.set(pbvalue)
+
+        s_label = ctk.CTkLabel(goals_mframe,text='Show More',text_color='#2e2e2e',bg_color='#161616',font=('Barlow Medium',15))
+        s_label.grid(row=8,column=1,padx=10,pady=10)
     
     def transferpage():
+        
+        
+        
         transfer_frame = ctk.CTkFrame(mainframe,fg_color='#161616')
         transfer_frame.place(x=0,y=0,relwidth=1,relheight=1)
 
@@ -1421,21 +1683,182 @@ def mainUI():
         shoppingbtn.place(x=1356+15,y = 535)
     
     def spendingpage():
-        spending_frame = ctk.CTkFrame(mainframe,fg_color='#161616')
+        spending_frame = ntk.CTkScrollableFrame(mainframe,fg_color='#161616')
         spending_frame.place(x=0,y=0,relwidth=1,relheight=1)
 
         label = ctk.CTkLabel(spending_frame,text='150 rupay dega!')
         label.pack()
     
-    def creditspage():
-        credits_frame = ctk.CTkFrame(mainframe,fg_color='#161616')
-        credits_frame.place(x=0,y=0,relwidth=1,relheight=1)
+    def nixareapage():
+
+        global nixarea_frame
+        nixarea_frame = ctk.CTkFrame(mainframe,fg_color='#161616')
+        nixarea_frame.place(x=0,y=0,relwidth=1,relheight=1)
+
+        label = ctk.CTkLabel(nixarea_frame,text='NIX AREA',font=('Barlow Bold',30),text_color="#0008ff")
+        label.pack()
+
+        nixlogo2 = ctk.CTkImage(Image.open('LoginWindow/Nix Logo 2.png'),size=(60, 42))
+        l2 = ctk.CTkLabel(nixarea_frame,text="",image=nixlogo2,bg_color="#161616")
+        l2.place(x=1470,y=1)
+
+        qr_label= ctk.CTkLabel(nixarea_frame,text='Your QR',text_color="#2e2e2e",font=('Barlow Medium',15))
+        qr_label.place(x=21,y=45)
+        qr_line=ctk.CTkLabel(nixarea_frame,text='',bg_color='#2e2e2e',height=1)
+        qr_line.place(x=18,y=75,width=580,height=2)
+
+
+        savingslabel=ctk.CTkLabel(nixarea_frame,text='Savings',text_color="#2e2e2e",font=('Barlow Medium',15))
+        savingslabel.place(x=521,y=45)
+        seicon=ctk.CTkImage(Image.open('icons/edit_uns.png'),size=(16,16))
+        se_icon = ctk.CTkButton(nixarea_frame,image=seicon,fg_color="#161616",bg_color="#161616",width=40,height=40,text="",hover=False)
+        se_icon.place(x=980,y=40)
+        savingsline=ctk.CTkLabel(nixarea_frame,text='',bg_color='#2e2e2e',height=1)
+        savingsline.place(x=518,y=75,width=623,height=2)
+
+        #~~~~~~~~~~~~~~~~~~~Upcoming Bills~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #Fetching Data
+        cursor2.execute(f"SELECT UPCOMING_BILL,BILL_AMT,PMT_DATE,MONTHNAME(PMT_DATE) FROM NIX_DATA.{currentuser[1]}_UCBILLS ORDER BY PMT_DATE;")
+        bills_list = cursor2.fetchall()
+
+        global upc_a_icon,upc_e_icon
+        upc_eicon=ctk.CTkImage(Image.open('icons/edit_uns.png'),size=(16,16))
+        upc_aicon=ctk.CTkImage(Image.open('icons/add_uns.png'),size=(18,18))
+        upc_e_icon = ctk.CTkButton(nixarea_frame,image=upc_eicon,fg_color="#161616",bg_color="#161616",width=40,height=40,text="",hover=False,command=lambda :upc_au_bills("e"))
+        upc_e_icon.place(x=1443,y=40)
+        upc_a_icon = ctk.CTkButton(nixarea_frame,image=upc_aicon,fg_color="#161616",bg_color="#161616",width=40,height=40,text="",hover=False,command=lambda :upc_au_bills("a"))
+        upc_a_icon.place(x=1483,y=40)
+        upc_billabel= ctk.CTkLabel(nixarea_frame,text='Upcoming Bills',text_color="#2e2e2e",font=('Barlow Medium',15))
+        upc_billabel.place(x=1056,y=45)
+        upc_billine=ctk.CTkLabel(nixarea_frame,text='',bg_color='#2e2e2e',height=1)
+        upc_billine.place(x=1053,y=75,width=582,height=2)
+
+        upc_a_icon.bind('<Enter>',hover_upc_a_in)
+        upc_a_icon.bind('<Leave>',hover_upc_a_out)
+        upc_e_icon.bind('<Enter>',hover_upc_e_in)
+        upc_e_icon.bind('<Leave>',hover_upc_e_out)
+        
+        upc_pframe = ctk.CTkFrame(nixarea_frame,bg_color="#161616",width=468,height=300)
+        upc_pframe.place(x=1050,y=80)
+        upc_mframe = ntk.CTkScrollableFrame(upc_pframe,fg_color="#161616",bg_color="#161616",width=445,height=295)
+        upc_mframe.place(x=0,y=0)
+
+        upc_mframe.columnconfigure(1,weight=30)
+        upc_mframe.columnconfigure(2,weight=10)
+        upc_mframe.columnconfigure(3,weight=1)
+
+        # placing objects
+        if len(bills_list)==1:
+            upc_posindex= range(0,len(bills_list)+3,2)
+        else :
+            upc_posindex= range(0,len(bills_list)+((len(bills_list)-1)*2),2)
+        for urow,data in zip(upc_posindex,bills_list):
+            d = str(data[2]).split('-')
+            format_datetime = datetime(int(d[0]),int(d[1]),int(d[2]))
+            strdateformatforupcbills=format_datetime.strftime("%b %d %Y ")
+
+            g = ctk.CTkButton(upc_mframe,text=f"{data[0]}",text_color="#2e2e2e",fg_color="#161616",bg_color="#161616",hover=False,font=('Barlow Medium',20),anchor='w')
+            g.grid(row=urow,column=1,sticky='w')
+
+            p=ctk.CTkLabel(upc_mframe,text=f"Due : {strdateformatforupcbills}",text_color="#2e2e2e",font=('Barlow Regular',13),bg_color="#161616")
+            p.grid(row=urow+1,column=1,sticky='nw',padx=9,pady=(0,8))
+
+            pay=ctk.CTkLabel(upc_mframe,text="Pay",text_color="#2e2e2e",font=('Barlow Medium',17),bg_color="#161616")
+            pay.grid(row=urow,column=3,sticky='e',padx=(0,5))
+
+            amt = ctk.CTkLabel(upc_mframe,text=f"₹{data[1]}",text_color="#2e2e2e",font=('Barlow Medium',17),bg_color="#161616")
+            amt.grid(row=urow,column=2,sticky='e',padx=(0,5))
+
+        #~~~~~~~~~~~~~~~~~~~~~~AutoPay~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        
+        upc_e_icon = ctk.CTkButton(nixarea_frame,text='●●●',text_color="#2e2e2e",fg_color="#161616",bg_color="#161616",width=40,height=40,hover=False,command=lambda :upc_au_bills("e"))
+        upc_e_icon.place(x=1468,y=387)
+        ap_billabel= ctk.CTkLabel(nixarea_frame,text='Autopay',text_color="#2e2e2e",font=('Barlow Medium',15))
+        ap_billabel.place(x=1056,y=390)
+        ap_billine=ctk.CTkLabel(nixarea_frame,text='',bg_color='#2e2e2e',height=1)
+        ap_billine.place(x=1053,y=420,width=582,height=2)
+
+        #~~~~~~~~~~~~~~~~~~~~~~Savings~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #Fetching Data
+        cs_year = datetime.today().year
+        cs_month = datetime.today().strftime("%B")
+        cursor2.execute(f"SELECT SAVINGS_GOAL,CURR_SAVINGS FROM NIX_DATA.{currentuser[1]}_SAVINGS WHERE SAVINGS_MONTH = '{cs_month}' AND SAVINGS_YEAR = {cs_year};")
+        nas_data = cursor2.fetchone()
+        nixareavars['savingstarget'] = nas_data[0]
+        nixareavars['currentsavings'] = nas_data[1]
+
+        savingslist = [nixareavars['currentsavings']]
+        savingslist.append(nixareavars['savingstarget']-nixareavars['currentsavings'])
+
+        fig = Figure(figsize=(4,4),facecolor='#161616') # create a figure object
+        ax = fig.add_subplot(111)
+        ax.pie(savingslist,startangle=90 ,counterclock=False,radius=1.15,colors=['#0008ff','#161616'],wedgeprops={'width':0.25})
+        chart1 = FigureCanvasTkAgg(fig,nixarea_frame)
+        chart1.get_tk_widget().place(x=740,y=99)
+
+        cs_amt = ctk.CTkLabel(nixarea_frame,text=f"₹{nixareavars['currentsavings']}",text_color="#2e2e2e",font=('Barlow Bold',35))
+        cs_amt.place(x=700,y=205)
+        cs_amtpercent = ctk.CTkLabel(nixarea_frame,text=f"{(nixareavars['currentsavings']/nixareavars['savingstarget'])*100}%",text_color="#2e2e2e",font=('Barlow Medium',20))
+        cs_amtpercent.place(x=732,y=247)
+
+        #~~~~~~~~~~~~~~~~~~~~~~Goals~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #fetching data 
+        cursor2.execute(f"SELECT GOALS,GOAL_AMT,CURR_GOAL_AMT FROM NIX_DATA.{currentuser[1]}_GOALS;")
+        goals_data=cursor2.fetchall()
+
+        global ga_icon,ge_icon
+        goalslabel=ctk.CTkLabel(nixarea_frame,text='Goals',text_color="#2e2e2e",font=('Barlow Medium',17))
+        goalslabel.place(x=521,y=380)
+        geicon=ctk.CTkImage(Image.open('icons/edit_uns.png'),size=(16,16))
+        gaicon=ctk.CTkImage(Image.open('icons/add_uns.png'),size=(18,18))
+        ge_icon = ctk.CTkButton(nixarea_frame,image=geicon,fg_color="#161616",bg_color="#161616",width=40,height=40,text="",hover=False,command=lambda :add_edit_goals("e"))
+        ge_icon.place(x=940,y=375)
+        ga_icon = ctk.CTkButton(nixarea_frame,image=gaicon,fg_color="#161616",bg_color="#161616",width=40,height=40,text="",hover=False,command=lambda :add_edit_goals("a"))
+        ga_icon.place(x=980,y=375)
+        goalsline=ctk.CTkLabel(nixarea_frame,text='',bg_color='#2e2e2e',height=1)
+        goalsline.place(x=518,y=410,width=623,height=2)
+
+        ga_icon.bind('<Enter>',hover_ga_in)
+        ga_icon.bind('<Leave>',hover_ga_out)
+        ge_icon.bind('<Enter>',hover_ge_in)
+        ge_icon.bind('<Leave>',hover_ge_out)
+
+        goals_pframe = ntk.CTkFrame(nixarea_frame,width=495,height=220,fg_color='#161616')
+        goals_pframe.place(x=520,y=418)
+        goals_mframe = ntk.CTkScrollableFrame(goals_pframe,width=475,height=220,fg_color='#161616')
+        goals_mframe.place(x=0,y=0)
+
+        goals_mframe.columnconfigure(1,weight=50)
+        goals_mframe.columnconfigure(2,weight=1)
+
+        # placing objects
+        if len(goals_data)==1:
+            gposindex= range(0,len(goals_data)+3,2)
+        else :
+            gposindex= range(0,len(goals_data)+((len(goals_data)-1)*2),2)
+        for grow,data in zip(gposindex,goals_data):
+            g = ctk.CTkButton(goals_mframe,text=f"{data[0]}",text_color="#2e2e2e",fg_color="#161616",bg_color="#161616",hover=False,font=('Barlow Medium',20),anchor='w')
+            g.grid(row=grow,column=1,sticky='w')
+
+            pay=ctk.CTkLabel(goals_mframe,text="Pay",text_color="#2e2e2e",font=('Barlow Medium',18),bg_color="#161616")
+            pay.grid(row=grow,column=2,sticky='e',padx=(0,5))
+
+            p=ctk.CTkLabel(goals_mframe,text=f"₹{data[2]}/₹{data[1]}",text_color="#2e2e2e",font=('Barlow Regular',15),bg_color="#161616")
+            p.grid(row=grow+1,column=1,sticky='sw',padx=9,pady=(0,8))
+
+            pb = ctk.CTkProgressBar(goals_mframe,orientation='horizontal')
+            pb.grid(row=grow+1,column=2,sticky='ew',pady=(0,8))
+            pbvalue = ((data[2]/data[1]))
+            pb.set(pbvalue)
 
     def investingpage():
-        investing_frame = ctk.CTkFrame(mainframe,fg_color='#161616')
-        investing_frame.place(x=0,y=0,relwidth=1,relheight=1)
+        investing_frame = ctk.CTkFrame(mainframe,fg_color='#161616',width=500,height=200)
+        investing_frame.place(x=0,y=0)
     
     def historypage():
+        
+        
+        
         def updatesize(e):
             if list_height >= history_frame.winfo_height():
                 pass
@@ -1569,6 +1992,245 @@ def mainUI():
                                             font=('Barlow Medium',15),text_color='red')
         upi_validation_label.place(x=598,y=520)
 
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~SUBWINDOWS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def add_edit_goals(t):
+        def aeindicator(f):
+            if f == 'a':
+                aframe_indicator.configure(bg_color="#2e2e2e")
+                eframe_indicator.configure(bg_color="#161616")
+            else:
+                eframe_indicator.configure(bg_color="#2e2e2e")
+                aframe_indicator.configure(bg_color="#161616")
+        goalswin=ctk.CTk()
+        goalswin.minsize(500,300)
+        goalswin.configure(fg_color="#161616")
+        goalswin.resizable(False,False)
+        goalswin.title("Goals")
+
+        add_label = ctk.CTkLabel(goalswin,text="Add Goals",text_color="#2e2e2e",font=("Barlow Medium",15))
+        add_label.place(x=10,y=1)
+        aframe_indicator=ctk.CTkLabel(goalswin,text='',bg_color='#161616',height=1)
+        aframe_indicator.place(x=10,y=25,width=85,height=2)
+        edit_label = ctk.CTkLabel(goalswin,text="Edit Goals",text_color="#2e2e2e",font=("Barlow Medium",15))
+        edit_label.place(x=90,y=1)
+        eframe_indicator=ctk.CTkLabel(goalswin,text='',bg_color='#161616',height=1)
+        eframe_indicator.place(x=89,y=25,width=88,height=2)
+
+        def editframe():
+            try:
+                add_mframe.destroy()
+            except:
+                pass
+            finally:
+                aeindicator('e')
+                #Variables
+                values=[]
+
+                global currgoalamt_input,goalbox,edit_mframe,radio_var,radiobutton_1,radiobutton_2,errorstr
+                editpframe = ctk.CTkFrame(goalswin,width=500,height=280)
+                editpframe.place(x=0,y=35)
+                edit_mframe = ntk.CTkScrollableFrame(editpframe,fg_color="#161616",width=480,height=260,bg_color="#161616")
+                edit_mframe.place(x=0,y=0)
+
+                #Fetch Data
+                cursor.execute(f"SELECT GOALS FROM NIX_DATA.{currentuser[1]}_GOALS;")
+                goalslist = cursor.fetchall()
+                for i in goalslist:
+                    values.append(i[0])
+
+                #UI
+                goal_label = ctk.CTkLabel(edit_mframe,text_color="#2e2e2e",text="Select Goal",font=("Barlow Semibold",15),bg_color="#161616")
+                goal_label.pack(anchor='w',padx=3)
+                
+                goalbox = ctk.CTkComboBox(edit_mframe,values=values,width=300,border_color="#2e2e2e",fg_color="#161616",text_color="#2e2e2e",height=40,font=("Barlow Medium",15),justify='left',state='readonly')
+                goalbox.pack(anchor='w',padx=3,pady=3)
+                goalbox.set("Select goal")
+                CTkScrollableDropdown(goalbox,values=values,justify="left", button_color="transparent",x=50)
+
+                payfrom_label = ctk.CTkLabel(edit_mframe,text_color="#2e2e2e",text="Add Current Amount From",font=("Barlow Semibold",15),bg_color="#161616")
+                payfrom_label.pack(anchor='w',padx=3,pady=(5,3))
+
+                radio_var = ctk.StringVar(value="0")
+                radio_var.set(0)
+                radiobutton_1 = ntk.CTkRadioButton(edit_mframe, text="Wallet",radiobutton_height=18,radiobutton_width=18, 
+                                                bg_color="#161616",text_color='#2e2e2e',border_color="#2e2e2e",border_width_checked=3,variable= radio_var, value="1")
+                radiobutton_1.pack(anchor='w',padx=5)
+                radiobutton_2 = ntk.CTkRadioButton(edit_mframe, text="Savings", radiobutton_height=18,radiobutton_width=18, 
+                                                bg_color="#161616",text_color='#2e2e2e',border_color="#2e2e2e",border_width_checked=3,variable= radio_var, value="2")
+                radiobutton_2.pack(anchor='nw',padx=5,pady=(3,0))
+
+                currgoalamt_label = ctk.CTkLabel(edit_mframe,text_color="#2e2e2e",text="Add Amount",font=("Barlow Semibold",15),bg_color="#161616")
+                currgoalamt_label.pack(anchor='w',padx=3,pady=(10,3))
+                currgoalamt_input = ctk.CTkEntry(edit_mframe,text_color="#2e2e2e",width=400,height=50,
+                                        fg_color="#161616",bg_color="#161616",placeholder_text="Add Amount",placeholder_text_color="#2e2e2e",
+                                        border_color="#2e2e2e",border_width=2,font=("Barlow Medium",16))
+                currgoalamt_input.pack(anchor="w",padx=3)
+
+                errorstr = ctk.CTkLabel(edit_mframe,text_color="#C21807",text="",font=("Barlow Semibold",15),bg_color="#161616")
+                errorstr.pack(anchor='w',padx=3,pady=(10,3))
+                
+                addbtn = ctk.CTkButton(edit_mframe,text="Add Goal",width=400,height=50,command=lambda :checkifint(currgoalamt_input,goalbox,"ge"))
+                addbtn.pack(anchor='w',padx=4,pady=5)
+
+        def addframe():
+            try:
+                edit_mframe.destroy()
+            except:
+                pass
+            finally:
+                aeindicator('a')
+
+                global add_mframe,goalamt_input,goal_input
+                
+                add_mframe = ctk.CTkFrame(goalswin,fg_color="#161616",width=500,height=270)
+                add_mframe.place(x=0,y=30)
+
+                goal_label = ctk.CTkLabel(add_mframe,text_color="#2e2e2e",text="Goal",font=("Barlow Semibold",15))
+                goal_label.pack(anchor='w',padx=10)
+
+                goal_input = ctk.CTkEntry(add_mframe,text_color="#2e2e2e",width=400,height=50,
+                                        fg_color="#161616",bg_color="#161616",placeholder_text="Enter Goal",placeholder_text_color="#2e2e2e",
+                                        border_color="#2e2e2e",border_width=2,font=("Barlow Medium",16))
+                goal_input.pack(anchor='w',padx=10)
+
+                goalamt_label = ctk.CTkLabel(add_mframe,text_color="#2e2e2e",text="Amount",font=("Barlow Semibold",15))
+                goalamt_label.pack(anchor='w',padx=10,pady=(10,0))
+
+                
+                goalamt_input = ctk.CTkEntry(add_mframe,text_color="#2e2e2e",width=400,height=50,
+                                        fg_color="#161616",bg_color="#161616",placeholder_text="Enter goal amount",placeholder_text_color="#2e2e2e",
+                                        border_color="#2e2e2e",border_width=2,font=("Barlow Medium",16))
+                goalamt_input.pack(anchor='w',padx=10)
+
+                addbtn = ctk.CTkButton(add_mframe,text="Add Goal",width=450,height=50,command=lambda :checkifint(goalamt_input,goal_input,"ga"))
+                addbtn.pack(anchor='w',padx=10,pady=(35,0))
+
+        add_label.bind("<Button-1>",lambda x:addframe())
+        edit_label.bind("<Button-1>",lambda x:editframe())
+
+        if t =="a":
+            addframe()
+        else:
+            editframe()
+
+        goalswin.mainloop()
+        
+    def upc_au_bills(t):
+        def aeindicator(f):
+            if f == 'a':
+                aframe_indicator.configure(bg_color="#2e2e2e")
+                eframe_indicator.configure(bg_color="#161616")
+            else:
+                eframe_indicator.configure(bg_color="#2e2e2e")
+                aframe_indicator.configure(bg_color="#161616")
+        
+        def addframe():
+            aeindicator('a')
+
+            def dateselect():
+
+                def showdate(e):
+                    datevar.set(cal.selection_get())
+                    ubdate_input.configure(textvariable=datevar)
+                    top.destroy()
+                
+                top = ctk.CTkToplevel(add_ubframe)
+                top.title("Select Date")
+
+                cal = Calendar(top, font="Barlow", selectmode='day', locale='en_in',date_pattern="yy-mm-dd",
+                                year=2023, month=10, day=5,background="#1e1e1e",foreground="white",
+                                bordercolor="#2e2e2e",headersbackground="#1e1e1e",headersforeground="#2e2e2e",normalbackground="#1e1e1e",
+                                normalforeground="#2e2e2e",othermonthforeground="#1e1e1e",othermonthbackground="#2e2e2e",
+                                othermonthwebackground="#2e2e2e",othermonthweforeground="#1e1e1e",weekendforeground="#2e2e2e",weekendbackground="#1e1e1e"
+                                ,tooltipbackground="#1e1e1e")
+
+                cal.pack(fill="both", expand=True)
+
+                top.bind('<Return>',showdate)
+                add_ubframe.update()
+            
+            def apswitch(switchvalue):
+                if switchvalue == "on":
+                    addbtn.configure(text="Proceed",command=lambda:print("ppp"))
+                elif switchvalue == "off":
+                    addbtn.configure(text="Add Bill",command=lambda :checkifint(ubamt_input,ubname_input,"ba"))
+            
+            global ubamt_input,ubdate_input,ubname_input
+            add_ubframe = ctk.CTkFrame(billswin,fg_color="#161616",width=600,height=370)
+            add_ubframe.place(x=0,y=30)
+
+            ub_label = ctk.CTkLabel(add_ubframe,text_color="#2e2e2e",text="Receiver Name",font=("Barlow Semibold",17))
+            ub_label.place(x=15,y=10)
+
+            ubname_input = ctk.CTkEntry(add_ubframe,text_color="#2e2e2e",width=400,height=50,
+                                      fg_color="#161616",bg_color="#161616",placeholder_text="Enter Receiver",placeholder_text_color="#2e2e2e",
+                                      border_color="#2e2e2e",border_width=2,font=("Barlow Medium",16))
+            ubname_input.place(x=10,y=38)
+
+            ubamt_label = ctk.CTkLabel(add_ubframe,text_color="#2e2e2e",text="Amount",font=("Barlow Semibold",17))
+            ubamt_label.place(x=15,y=100)
+
+            
+            ubamt_input = ctk.CTkEntry(add_ubframe,text_color="#2e2e2e",width=330,height=50,
+                                      fg_color="#161616",bg_color="#161616",placeholder_text="Enter bill amount",placeholder_text_color="#2e2e2e",
+                                      border_color="#2e2e2e",border_width=2,font=("Barlow Medium",16))
+            ubamt_input.place(x=10,y=128)
+
+            ap_label = ctk.CTkLabel(add_ubframe,text_color="#2e2e2e",text="AutoPay",font=("Barlow Semibold",17))
+            ap_label.place(x=420,y=100)
+            
+            apswitch_var = ntk.StringVar(value="off")
+            autopayswitch = ntk.CTkSwitch(add_ubframe, text="",bg_color="#161616",switch_height=30,switch_width=65,command=lambda :apswitch(apswitch_var.get()),
+                                            variable=apswitch_var, onvalue="on", offvalue="off",progress_color="#0008ff")
+            autopayswitch.deselect()
+            autopayswitch.place(x=420,y=135)
+
+            ubdate_label = ctk.CTkLabel(add_ubframe,text_color="#2e2e2e",text="Date",font=("Barlow Semibold",17))
+            ubdate_label.place(x=15,y=190)
+
+            inputdatebtn = ctk.CTkButton(add_ubframe,fg_color="#0008ff",width=50,height=50,text="$",command=dateselect)
+            inputdatebtn.place(x=210,y=218)
+
+            datevar = ctk.StringVar(add_ubframe,value="DD/MM/YYYY")
+            ubdate_input = ctk.CTkEntry(add_ubframe,text_color="#2e2e2e",width=200,height=50,textvariable=datevar,
+                                      fg_color="#161616",bg_color="#161616",
+                                      border_color="#2e2e2e",border_width=2,font=("Barlow Medium",16),)
+            ubdate_input.place(x=10,y=218)
+
+            addbtn = ctk.CTkButton(add_ubframe,text="Add Bill",width=500,height=60,command=lambda :checkifint(ubamt_input,ubname_input,"ba"))
+            addbtn.place(x=15,y=290)
+
+        def editframe():
+            pass
+
+        def autopayframe():
+            pass
+
+
+        billswin = ctk.CTk()
+        billswin.minsize(600,400)
+        billswin.configure(fg_color="#161616")
+        billswin.resizable(False,False)
+        billswin.title("Add Bill")
+
+        add_label = ctk.CTkLabel(billswin,text="Add Bills",text_color="#2e2e2e",font=("Barlow Medium",18))
+        add_label.place(x=10,y=1)
+        aframe_indicator=ctk.CTkLabel(billswin,text='',bg_color='#161616',height=1)
+        aframe_indicator.place(x=10,y=25,width=85,height=2)
+        edit_label = ctk.CTkLabel(billswin,text="Edit Bills",text_color="#2e2e2e",font=("Barlow Medium",18))
+        edit_label.place(x=90,y=1)
+        eframe_indicator=ctk.CTkLabel(billswin,text='',bg_color='#161616',height=1)
+        eframe_indicator.place(x=89,y=25,width=88,height=2)
+        calendaricon = ctk.CTkImage(Image.open('Icons/calendar.png'))
+
+        
+
+        if t =="a":
+            addframe()
+        else:
+            editframe()
+        billswin.mainloop()
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NAVBAR~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
@@ -1580,27 +2242,22 @@ def mainUI():
     home = ctk.CTkButton(main,text='Home',state='disabled',image=homeicon,compound='top',font=('Barlow Medium',10),width=65,height=65,bg_color='#252525',text_color='white',fg_color='#414141',border_width=0,corner_radius=12,hover_color='#1e1e1e',command=lambda : indicate(home, homepage,'n',None,'home'))
     home.place(x=533+1,y=699)
 
-    
     transfericon=ctk.CTkImage(Image.open('icons/transfer_uns.png'))
     transfer = ctk.CTkButton(main,text='Transfer',image=transfericon,compound='top',font=('Barlow Medium',10),width=65,height=65,bg_color='#252525',text_color='#b6b6b6',fg_color='#1e1e1e',border_width=0,corner_radius=12,hover_color='#1e1e1e',command=lambda : indicate(transfer,transferpage,'n',None,'transfer'))
     transfer.place(x=612+1,y=699)
 
-    
     spendingicon=ctk.CTkImage(Image.open('icons/spending_uns.png'))
     spending = ctk.CTkButton(main,text='Spending',image=spendingicon,compound='top',font=('Barlow Medium',10),width=65,height=65,bg_color='#252525',text_color='#b6b6b6',fg_color='#1e1e1e',border_width=0,corner_radius=12,hover_color='#1e1e1e',command=lambda : indicate(spending,spendingpage,'n',None,'spending'))
     spending.place(x=691+1,y=699)
 
-    
     creditsicon=ctk.CTkImage(Image.open('icons/credits_uns.png'))
-    credits = ctk.CTkButton(main,text='Nix Area',image=creditsicon,compound='top',font=('Barlow Medium',10),width=65,height=65,bg_color='#252525',text_color='#b6b6b6',fg_color='#1e1e1e',border_width=0,corner_radius=12,hover_color='#1e1e1e',command=lambda : indicate(credits,creditspage,'n',None,'credits'))
+    credits = ctk.CTkButton(main,text='Nix Area',image=creditsicon,compound='top',font=('Barlow Medium',10),width=65,height=65,bg_color='#252525',text_color='#b6b6b6',fg_color='#1e1e1e',border_width=0,corner_radius=12,hover_color='#1e1e1e',command=lambda : indicate(credits,nixareapage,'n',None,'credits'))
     credits.place(x=771+1,y=699)
 
-    
     investingicon=ctk.CTkImage(Image.open('icons/investing_uns.png'))
     investing = ctk.CTkButton(main,text='Investing',image=investingicon,compound='top',font=('Barlow Medium',10),width=65,height=65,bg_color='#252525',text_color='#b6b6b6',fg_color='#1e1e1e',border_width=0,corner_radius=12,hover_color='#1e1e1e',command=lambda : indicate(investing,investingpage,'n',None,'investing'))
     investing.place(x=850+1,y=699)
 
-    
     historyicon=ctk.CTkImage(Image.open('icons/history_uns.png'))
     history = ctk.CTkButton(main,text='History',image=historyicon,compound='top',font=('Barlow Medium',10),width=65,height=65,bg_color='#252525',text_color='#b6b6b6',fg_color='#1e1e1e',border_width=0,corner_radius=12,hover_color='#1e1e1e',command=lambda : indicate(history,historypage,'n',None,'history'))
     history.place(x=929+1,y=699)
@@ -1621,9 +2278,10 @@ def mainUI():
 
 
 
-    
     homepage()
     main.mainloop()
+
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Main~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if __name__ == '__main__' :
